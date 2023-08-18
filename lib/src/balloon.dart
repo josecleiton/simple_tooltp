@@ -15,6 +15,7 @@ class _Ballon extends StatefulWidget {
   final double arrowLength;
   final Widget content;
   final EdgeInsets ballonPadding;
+  final EdgeInsets? ballonInnerPadding;
   final Color backgroundColor;
   final List<BoxShadow> shadows;
   final GestureTapCallback? onTap;
@@ -40,6 +41,7 @@ class _Ballon extends StatefulWidget {
     required this.shadows,
     this.onTap,
     required this.onSizeChange,
+    this.ballonInnerPadding,
   }) : super(key: key);
 
   @override
@@ -55,13 +57,16 @@ class __BallonState extends State<_Ballon> {
   Widget build(BuildContext context) {
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
       if (!mounted) return;
-      final RenderBox? renderBox = _containerKey.currentContext!.findRenderObject() as RenderBox?;
+      final RenderBox? renderBox =
+          _containerKey.currentContext!.findRenderObject() as RenderBox?;
       if (renderBox == null) return null;
       final Size size = renderBox.size;
       final position = renderBox.localToGlobal(Offset.zero);
       // print("position : ${position.dx},${position.dy}, Size: ${renderBox.size}");
 
-      if (_lastSizeNotified == null || _lastSizeNotified!.size != size || _lastSizeNotified!.globalPosition != position) {
+      if (_lastSizeNotified == null ||
+          _lastSizeNotified!.size != size ||
+          _lastSizeNotified!.globalPosition != position) {
         final ballonSize = _BallonSize(
           size: size,
           globalPosition: position,
@@ -92,6 +97,7 @@ class __BallonState extends State<_Ballon> {
             // right,
             // bottom,
             widget.arrowLength,
+            widget.ballonInnerPadding,
           ),
         ),
         padding: widget.ballonPadding,
@@ -110,6 +116,7 @@ class _BalloonShape extends ShapeBorder {
   final double borderWidth;
   final TooltipDirection tooltipDirection;
   final double arrowLength;
+  final EdgeInsets dimensions;
   // final double left, top, right, bottom;
 
   _BalloonShape(
@@ -121,14 +128,12 @@ class _BalloonShape extends ShapeBorder {
     this.borderColor,
     this.borderWidth,
     this.arrowLength,
+    EdgeInsets? padding,
     // this.left,
     // this.top,
     // this.right,
     // this.bottom,
-  );
-
-  @override
-  EdgeInsetsGeometry get dimensions => new EdgeInsets.all(10.0);
+  ) : dimensions = padding ?? EdgeInsets.all(10.0);
 
   @override
   Path getInnerPath(Rect rect, {TextDirection? textDirection}) {
@@ -140,13 +145,17 @@ class _BalloonShape extends ShapeBorder {
   @override
   Path getOuterPath(Rect rect, {TextDirection? textDirection}) {
     //
-    late double topLeftRadius, topRightRadius, bottomLeftRadius, bottomRightRadius;
+    late double topLeftRadius,
+        topRightRadius,
+        bottomLeftRadius,
+        bottomRightRadius;
 
     Path _getLeftTopPath(Rect rect) {
       return new Path()
         ..moveTo(rect.left, rect.bottom - bottomLeftRadius)
         ..lineTo(rect.left, rect.top + topLeftRadius)
-        ..arcToPoint(Offset(rect.left + topLeftRadius, rect.top), radius: new Radius.circular(topLeftRadius))
+        ..arcToPoint(Offset(rect.left + topLeftRadius, rect.top),
+            radius: new Radius.circular(topLeftRadius))
         ..lineTo(rect.right - topRightRadius, rect.top)
         ..arcToPoint(Offset(rect.right, rect.top + topRightRadius),
             radius: new Radius.circular(topRightRadius), clockwise: true);
@@ -181,12 +190,17 @@ class _BalloonShape extends ShapeBorder {
       case TooltipDirection.down:
         return _getBottomRightPath(rect)
           ..lineTo(
-              min(max(targetCenter.dx + arrowBaseWidth / 2, rect.left + borderRadius + arrowBaseWidth),
+              min(
+                  max(targetCenter.dx + arrowBaseWidth / 2,
+                      rect.left + borderRadius + arrowBaseWidth),
                   rect.right - topRightRadius),
               rect.top)
-          ..lineTo(targetCenter.dx, rect.top - arrowLength) // up to arrow tip   \
           ..lineTo(
-              max(min(targetCenter.dx - arrowBaseWidth / 2, rect.right - topLeftRadius - arrowBaseWidth),
+              targetCenter.dx, rect.top - arrowLength) // up to arrow tip   \
+          ..lineTo(
+              max(
+                  min(targetCenter.dx - arrowBaseWidth / 2,
+                      rect.right - topLeftRadius - arrowBaseWidth),
                   rect.left + topLeftRadius),
               rect.top) //  down /
 
@@ -203,7 +217,9 @@ class _BalloonShape extends ShapeBorder {
           ..arcToPoint(Offset(rect.right - bottomRightRadius, rect.bottom),
               radius: new Radius.circular(bottomRightRadius), clockwise: true)
           ..lineTo(
-              min(max(targetCenter.dx + arrowBaseWidth / 2, rect.left + bottomLeftRadius + arrowBaseWidth),
+              min(
+                  max(targetCenter.dx + arrowBaseWidth / 2,
+                      rect.left + bottomLeftRadius + arrowBaseWidth),
                   rect.right - bottomRightRadius),
               rect.bottom)
 
@@ -212,7 +228,9 @@ class _BalloonShape extends ShapeBorder {
 
           //  down /
           ..lineTo(
-              max(min(targetCenter.dx - arrowBaseWidth / 2, rect.right - bottomRightRadius - arrowBaseWidth),
+              max(
+                  min(targetCenter.dx - arrowBaseWidth / 2,
+                      rect.right - bottomRightRadius - arrowBaseWidth),
                   rect.left + bottomLeftRadius),
               rect.bottom)
           ..lineTo(rect.left + bottomLeftRadius, rect.bottom)
@@ -226,11 +244,17 @@ class _BalloonShape extends ShapeBorder {
         return _getLeftTopPath(rect)
           ..lineTo(
               rect.right,
-              max(min(targetCenter.dy - arrowBaseWidth / 2, rect.bottom - bottomRightRadius - arrowBaseWidth),
+              max(
+                  min(targetCenter.dy - arrowBaseWidth / 2,
+                      rect.bottom - bottomRightRadius - arrowBaseWidth),
                   rect.top + topRightRadius))
-          ..lineTo(targetCenter.dx - arrowTipDistance, targetCenter.dy) // right to arrow tip   \
+          ..lineTo(targetCenter.dx - arrowTipDistance,
+              targetCenter.dy) // right to arrow tip   \
           //  left /
-          ..lineTo(rect.right, min(targetCenter.dy + arrowBaseWidth / 2, rect.bottom - bottomRightRadius))
+          ..lineTo(
+              rect.right,
+              min(targetCenter.dy + arrowBaseWidth / 2,
+                  rect.bottom - bottomRightRadius))
           ..lineTo(rect.right, rect.bottom - borderRadius)
           ..arcToPoint(Offset(rect.right - bottomRightRadius, rect.bottom),
               radius: new Radius.circular(bottomRightRadius), clockwise: true)
@@ -245,14 +269,19 @@ class _BalloonShape extends ShapeBorder {
               radius: new Radius.circular(topLeftRadius), clockwise: false)
           ..lineTo(
               rect.left,
-              max(min(targetCenter.dy - arrowBaseWidth / 2, rect.bottom - bottomLeftRadius - arrowBaseWidth),
+              max(
+                  min(targetCenter.dy - arrowBaseWidth / 2,
+                      rect.bottom - bottomLeftRadius - arrowBaseWidth),
                   rect.top + topLeftRadius))
 
           //left to arrow tip   /
           ..lineTo(targetCenter.dx + arrowTipDistance, targetCenter.dy)
 
           //  right \
-          ..lineTo(rect.left, min(targetCenter.dy + arrowBaseWidth / 2, rect.bottom - bottomLeftRadius))
+          ..lineTo(
+              rect.left,
+              min(targetCenter.dy + arrowBaseWidth / 2,
+                  rect.bottom - bottomLeftRadius))
           ..lineTo(rect.left, rect.bottom - bottomLeftRadius)
           ..arcToPoint(Offset(rect.left + bottomLeftRadius, rect.bottom),
               radius: new Radius.circular(bottomLeftRadius), clockwise: false);
@@ -285,6 +314,7 @@ class _BalloonShape extends ShapeBorder {
       borderColor,
       borderWidth,
       arrowLength,
+      dimensions,
       // left,
       // top,
       // right,
